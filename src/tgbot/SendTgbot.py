@@ -19,14 +19,16 @@ class Tgbot:
         pass
 
     async def _send_file(self, path: str, caption: str):
+        print('send_file')
         bot = Bot(self._token)
-        with path.open("rb") as f:
+        with open(path, "rb") as f:
             msg = await bot.send_document(chat_id=self._chat_id, document=f, caption=caption)
+            print('done')
         return msg.message_id
 
     async def _write_index(self):
         pass
 
     def build(self):
-        app = ApplicationBuilder().token(self._token).base_url(self._api_svr).build()
+        app = ApplicationBuilder().token(self._token).build()
         return app

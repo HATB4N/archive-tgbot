@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder, 
@@ -22,16 +23,20 @@ class Tgbot:
         self._token = token
         self._chat_id = chat_id
         self._api_svr = api_svr
+        self._app = None
+        self._bot = None
 
-    async def alert_result(self, u: Update, c: ContextTypes.DEFAULT_TYPE, req: int, code: int):
-        # WIP
-        res = f''
-        await c.bot.send_message(chat_id = self._chat_id, text=res)
+    async def alert_result(self, res: str, bot=None):
+        b = bot or getattr(self, "_bot", None)
+        if b is None:
+            raise RuntimeError("cbot: bot is None")
+        await b.send_message(chat_id=self._chat_id, text=res)
 
     async def _write(self, url: str, flag: str):
         pass
 
     async def _on_text(self, u: Update, c: ContextTypes.DEFAULT_TYPE):
+        print('etc help')
         text = (u.effective_message.text or "").strip()
         # url + flag (ex: https://google.com --flag or http://naver.com --flag)
         m = re.match(r"^(https?://\S+)\s+--(\S+)$", text)
@@ -52,6 +57,7 @@ class Tgbot:
             await u.message.reply_text("WIP")
 
     async def _cmd_help(self, u: Update, c: ContextTypes.DEFAULT_TYPE):
+        print('send help')
         helptxt = ("flags\n"
                 "--secretflag1\n"
                 "--secretflag2\n"
@@ -60,8 +66,10 @@ class Tgbot:
         await c.bot.send_message(chat_id = self._chat_id, text=helptxt)
     
     def build(self):
-        app = ApplicationBuilder().token(self._token).base_url(self._api_svr).build()
+        app = ApplicationBuilder().token(self._token).build()
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._on_text))
         app.add_handler(CommandHandler("rm", self._cmd_rm))
         app.add_handler(CommandHandler("help", self._cmd_help))
+        self._app = app
+        self._bot = app.bot
         return app

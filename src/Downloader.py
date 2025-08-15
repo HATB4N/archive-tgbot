@@ -19,33 +19,21 @@ class Web:
             self._browser = await playwright.chromium.launch()
         return self
     
-    async def to_pdf(self, url, file_id) -> Tuple[bool, Optional[Exception]]:
-        # match msg_id & file_id
+    async def to_pdf(self, url, doc_id) -> Tuple[bool, Optional[str], Optional[Exception]]:
+        # match msg_id & doc_id
         # not yet
         # I will refer to the archive box code later
-        path = os.path.join(self._output_path, str(file_id) + '.pdf')
+        path = os.path.join(self._output_path, str(doc_id) + '.pdf')
         try:
             page = await self._browser.new_page()
-            await page.goto(url, wait_until="networkidle")
-            await page.pdf(path=path, format="A4")
+            await page.goto(url, wait_until="networkidle") # fix after
+            await page.pdf(path=path, format="A4") # also fix after
             await page.close()
-            return True, None
+            return True, path, None
         except Exception as e:
-            return False, e
+            return False, None, e
 
     async def close(self):
         if self._browser:
             await self._browser.close()
             self._browser = None
-
-# # test code
-# async def main():
-#     test = await Web().init()
-#     r, e = await test.to_pdf(url = 'https://google.com', file_id = 123)
-#     if not r:
-#         print(e)
-#     await test.close()
-
-# if __name__ == '__main__':
-#     asyncio.run(main())
-    
