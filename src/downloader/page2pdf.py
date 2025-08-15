@@ -1,9 +1,10 @@
-from playwright.async_api import async_playwright
-from typing import Tuple, Optional
-# #import asyncio
 import os
+import mysql.connector
+from typing import Tuple, Optional
+from playwright.async_api import async_playwright
+# #import asyncio
 
-class Web:
+class Dl:
     '''
     url, id -> return
     '''

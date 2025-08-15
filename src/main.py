@@ -1,7 +1,9 @@
 import os
 import signal
 import asyncio
-import subprocess
+import subprocess # wtf
+import mysql.connector
+
 import Controller
 from tgbot import CmdTgbot
 from tgbot import SendTgbot

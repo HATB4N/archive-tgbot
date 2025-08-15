@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+import mysql.connector
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder, 

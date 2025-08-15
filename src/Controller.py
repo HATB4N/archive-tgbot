@@ -1,9 +1,10 @@
-from typing import Tuple
 import asyncio
-import Downloader
+import mysql.connector
+from typing import Tuple
+
+from downloader import page2pdf
 from tgbot import CmdTgbot
 from tgbot import SendTgbot
-import os
 
 class Con:
     _cbot: CmdTgbot.Tgbot
@@ -16,17 +17,17 @@ class Con:
 
     async def task(self):
         # read db & sbot.add_file & update db & cbot.alert_result
-        pdf_maker = await Downloader.Web().init()
+        pdf_maker = await page2pdf.Dl().init()
         while(True):
             print('start loop')
             url, flag, doc_id = await self._read()
             if flag == 0:
                 r, p, e = await pdf_maker.to_pdf(url, doc_id)
-                p = bf
                 if r:
                     print('download done. send start.')
                     async with self._assign_lock:
                         target_sbot = min(self._sbots, key=lambda b: (b.len_q + b.busy)) # watch
+                        # fix to min(double(total file size))
                         target_sbot.add_file(path=p, id=doc_id)
                     await self._cbot.alert_result(f'{url}: started to download\ndoc_id: {doc_id}')
                 else:

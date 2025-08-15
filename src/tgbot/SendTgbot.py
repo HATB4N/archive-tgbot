@@ -1,4 +1,5 @@
 import asyncio
+import mysql.connector
 from telegram import Bot
 from telegram.ext import ApplicationBuilder
 
@@ -25,6 +26,7 @@ class Tgbot:
         try:
             while True:
                 _doc_id, _path, _caption = await self._q.get()
+                self.len_q = self._q.qsize()
                 try:
                     self.busy = 1
                     _msg_id = await self._send_file(path = _path, caption = _caption)
@@ -32,7 +34,6 @@ class Tgbot:
                 finally:                    
                     self._q.task_done()
                     self.busy = 0
-                    self.len_q = self._q.qsize()
         except asyncio.CancelledError:
             # TODO
             pass
