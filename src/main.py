@@ -61,9 +61,12 @@ async def main():
     *(app.updater.start_polling(allowed_updates=["message", "channel_post", "edited_message"]) for app in apps)
     )
 
+    await asyncio.gather(*(b.start_background() for b in sbots))
+
     try:
         await stop_event.wait()
     finally:
+        await asyncio.gather(*(b.stop_background() for b in sbots))
         await asyncio.gather(*(app.stop() for app in reversed(apps)))
         await asyncio.gather(*(app.shutdown() for app in reversed(apps)))
         controller_task.cancel()

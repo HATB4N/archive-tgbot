@@ -23,10 +23,9 @@ class Con:
                 r, p, e = await pdf_maker.to_pdf(url, doc_id)
                 if r:
                     print('download done. send start.')
-                    # test code. make queue by call add_file(path)
-                    # _queue() will call _send_file()
-                    await self._sbots[0]._send_file(path = p, caption = 'test123')
-                    await self._cbot.alert_result(f'{url}: success\ndoc_id: {doc_id}')
+                    target_sbot = min(self._sbots, key=lambda b: b.len_q)
+                    await self._cbot.alert_result(f'{url}: started to download\ndoc_id: {doc_id}')
+                    await target_sbot.add_file(path=p, id=doc_id)
                 else:
                     print('download fail.')
                     await self._cbot.alert_result(f'{url}: fail\n{e}') # fix
