@@ -2,6 +2,7 @@ from telegram import Bot
 from telegram.ext import ApplicationBuilder
 
 class Tgbot:
+    '''each obj's token must be unique'''
     _token: str
     _chat_id: str
 
@@ -9,13 +10,13 @@ class Tgbot:
         self._token = token
         self._chat_id = chat_id
     
-    async def add_file(self):
+    async def add_file(self, path: str): # add file & alert to queue
         pass
 
     async def _queue(slef):
         pass
 
-    async def _send_file(self, path, caption: str):
+    async def _send_file(self, path: str, caption: str):
         bot = Bot(self._token)
         with path.open("rb") as f:
             msg = await bot.send_document(self._chat_id, document=f, caption=caption)
@@ -26,9 +27,4 @@ class Tgbot:
 
     def run(self):
         app = ApplicationBuilder().token(self._token).build()
-        app.run_polling(allowed_updates=[])
-
-# # test codes
-# bot = Tgbot('token', 'chat_id')
-# bot._send_file('a', 'b')
-# bot.run()
+        app.run_polling()
