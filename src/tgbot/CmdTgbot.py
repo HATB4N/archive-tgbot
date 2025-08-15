@@ -33,6 +33,8 @@ class Tgbot:
         await b.send_message(chat_id=self._chat_id, text=res)
 
     async def _write(self, url: str, flag: str):
+        # TODO write to db
+        # Default: int(0)
         pass
 
     async def _on_text(self, u: Update, c: ContextTypes.DEFAULT_TYPE):
@@ -43,18 +45,18 @@ class Tgbot:
         if m:
             url = m.group(1)
             flag = m.group(2).lower()
-            if flag in self._flags:
-                await self._write(url = url, flag = flag)
-            else:
-                await self._write(url = url, flag = 'Default')
+            if flag not in self._flags:
+                flag = 'Default'
+            await self._write(url = url, flag = flag)
+            await c.bot.send_message(chat_id = self._chat_id, text=f'url: {url}\nflag: {flag}\nhas uploaded to queue')
         
     async def _cmd_rm(self, u: Update, c: ContextTypes.DEFAULT_TYPE):
         if not c.args:
-            await u.message.reply_text("format: /rm <target_id>")
+            await c.bot.send_message(chat_id = self._chat_id, text='format: /rm <target_id>')
             return
         if c.args[0]:
             # TODO: validate target_id & search & rm it
-            await u.message.reply_text("WIP")
+            await c.bot.send_message(chat_id = self._chat_id, text='WIP')
 
     async def _cmd_help(self, u: Update, c: ContextTypes.DEFAULT_TYPE):
         print('send help')
