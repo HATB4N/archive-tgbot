@@ -2,22 +2,19 @@ import asyncio
 import mysql.connector
 from typing import Tuple
 
-from downloader import page2pdf
-from tgbot import CmdTgbot
-from tgbot import SendTgbot
+from downloader import Page2Pdf # not a p2p 
+import SendTgbot
 
 class Con:
-    _cbot: CmdTgbot.Tgbot
     _sbots: list[SendTgbot.Tgbot]
 
-    def __init__(self, cbot, sbots):
-        self._cbot = cbot
+    def __init__(self, sbots):
         self._sbots = sbots
         self._assign_lock = asyncio.Lock()
 
     async def task(self):
-        # read db & sbot.add_file & update db & cbot.alert_result
-        pdf_maker = await page2pdf.Dl().init()
+        # read db & sbot.add_file & update db
+        pdf_maker = await Page2Pdf.Dl().init()
         while(True):
             print('start loop')
             url, flag, doc_id = await self._read()
@@ -29,10 +26,8 @@ class Con:
                         target_sbot = min(self._sbots, key=lambda b: (b.len_q + b.busy)) # watch
                         # fix to min(double(total file size))
                         target_sbot.add_file(path=p, id=doc_id)
-                    await self._cbot.alert_result(f'{url}: started to download\ndoc_id: {doc_id}')
                 else:
                     print('download fail.')
-                    await self._cbot.alert_result(f'{url}: fail\n{e}') # fix
             else:
                 print('flag: wip')
             print('done loop')

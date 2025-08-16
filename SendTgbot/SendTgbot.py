@@ -11,7 +11,7 @@ class Tgbot:
     _q: asyncio.Queue[tuple[int, str, str]]
     _worker_task: asyncio.Task | None
     len_q: int
-    busy: int
+    busy: bool
 
     def __init__(self, token, chat_id, api_svr = 'https://api.telegram.org/'):
         self._token = token

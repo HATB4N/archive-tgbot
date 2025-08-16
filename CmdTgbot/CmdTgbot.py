@@ -1,5 +1,8 @@
 import re
+import asyncio
 import mysql.connector
+from enum import Enum, auto
+from dataclasses import dataclass 
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder, 
@@ -9,28 +12,60 @@ from telegram.ext import (
     filters
 )
 
+# cmdbot은 dict[doc_id: file_t]을 통해 FSM에 기반하여 각 파일의 수명을 관리한다.
+# 종료 state에(TERMINALS) 도달한 file_t은 dict에서 제거하는 방식으로 메모리를 관리한다. 
+# 주기적으로 db에서 flag를 읽어와 file_t의 state를 관리한다.
+# msg_id는 전송 이후 알 수 있으므로, doc_id에 매칭되는 dict로 구성한다. 
+# doc_id는 cmdbot에서 업로드 요청을 db에 레코드 할 때 unique하게 발급받는다.
+
+class State(Enum):
+    QUEUED = auto()
+    DOWNLOADING = auto()
+    DOWNLOADED = auto()
+    UPLOADING = auto()
+    UPLOADED = auto()
+    FAILED = auto()
+
+TERMINALS = {State.UPLOADED, State.FAILED}
+
+@dataclass 
+class file_t:
+    msg_id: int = None 
+    state: State = State.QUEUED
+    scheme: str = None
+
 class Tgbot:
     _token: str
     _chat_id: str
-    _api_svr: str
     _flags = [] # wip
+    _worker_task: asyncio.Task | None
+    _own_files: dict[int, file_t]
 
-    def __init__(self, token, chat_id, api_svr = 'https://api.telegram.org/'):
+    def __init__(self, token, chat_id):
         '''
         don't make multiple CmdTgbot\n
         parse user's cmd & write it into db
         '''
         self._token = token
         self._chat_id = chat_id
-        self._api_svr = api_svr
         self._app = None
         self._bot = None
+        self._worker_task = None
+        self._own_file = dict[int, file_t]
+
+    async def _db_worker(self):
+        try:
+            while True:
+                try:
+                    pass
+                finally:                    
+                    await asyncio.sleep(5)
+        except asyncio.CancelledError:
+            # TODO
+            pass
 
     async def alert_result(self, res: str, bot=None):
-        b = bot or getattr(self, "_bot", None)
-        if b is None:
-            raise RuntimeError("cbot: bot is None")
-        await b.send_message(chat_id=self._chat_id, text=res)
+        pass
 
     async def _write(self, url: str, flag: str):
         # TODO write to db
@@ -75,3 +110,17 @@ class Tgbot:
         self._app = app
         self._bot = app.bot
         return app
+    
+
+    async def start_background(self):
+        if not self._worker_task:
+            self._worker_task = asyncio.create_task(self._db_worker())
+
+    async def stop_background(self):
+        if self._worker_task:
+            self._worker_task.cancel()
+            try:
+                await self._worker_task
+            except asyncio.CancelledError:
+                pass
+            self._worker_task = None

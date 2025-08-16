@@ -2,11 +2,11 @@ import os
 import signal
 import asyncio
 import subprocess # wtf
+import contextlib
 import mysql.connector
 
 import Controller
-from tgbot import CmdTgbot
-from tgbot import SendTgbot
+import SendTgbot
 
 def wtf():
     img = os.path.abspath(
@@ -19,31 +19,18 @@ async def main():
             os.path.join(os.path.dirname(__file__), '../env')
         )
 
-    with open(os.path.join(env, 'tokens.txt'), 'r', encoding='utf-8') as f:
-        tokens = [ln.strip() for ln in f.read().splitlines() if ln.strip()]
+    with open(os.path.join(env, 'sbotenv.txt'), 'r', encoding='utf-8') as f:
+        envs = [ln.strip() for ln in f.read().splitlines() if ln.strip()]
 
-    if len(tokens)< 2:
-        print("less token")
+    if len(envs)< 2:
+        print("less env args")
         exit()
     
-    with open(os.path.join(env, 'chat_ids.txt'), 'r', encoding='utf-8') as f:
-        chat_ids = [ln.strip() for ln in f.read().splitlines() if ln.strip()]
+    sbot_chat_id = envs.pop(0)
 
-    if len(chat_ids)< 2:
-        print("less chat_id")
-        exit()
+    sbots = [SendTgbot.Tgbot(token=str(t), chat_id=int(sbot_chat_id)) for t in envs]
+    apps = [b.build() for b in sbots]
 
-    cbot_chat_id = chat_ids[0]
-    sbot_chat_id = chat_ids[1]
-
-    cbot_token = tokens.pop(0).strip() # first line of token.txt => cbot_token 
-    cbot = CmdTgbot.Tgbot(token = str(cbot_token), chat_id = int(cbot_chat_id))
-    cmd_app = cbot.build()
-
-    sbots = [SendTgbot.Tgbot(token=str(t), chat_id=int(sbot_chat_id)) for t in tokens]
-    send_apps = [b.build() for b in sbots]
-
-    apps = [cmd_app, *send_apps]
     stop_event = asyncio.Event()
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -53,12 +40,11 @@ async def main():
             pass
     
 
-    ctr = Controller.Con(cbot = cbot, sbots = sbots)
+    ctr = Controller.Con(sbots = sbots)
     controller_task = asyncio.create_task(ctr.task())
 
     await asyncio.gather(*(app.initialize() for app in apps))
     await asyncio.gather(*(app.start() for app in apps))
-
     await asyncio.gather(
     *(app.updater.start_polling(allowed_updates=["message", "channel_post", "edited_message"]) for app in apps)
     )
@@ -69,6 +55,7 @@ async def main():
         await stop_event.wait()
     finally:
         await asyncio.gather(*(b.stop_background() for b in sbots))
+        await asyncio.gather(*(app.updater.stop() for app in reversed(apps))) # watch
         await asyncio.gather(*(app.stop() for app in reversed(apps)))
         await asyncio.gather(*(app.shutdown() for app in reversed(apps)))
         controller_task.cancel()
@@ -77,5 +64,4 @@ async def main():
 
 if __name__ == "__main__":
     wtf()
-    import contextlib
     asyncio.run(main())
