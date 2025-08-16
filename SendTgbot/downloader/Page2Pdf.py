@@ -6,7 +6,7 @@ from playwright.async_api import async_playwright
 
 class Dl:
     '''
-    url, id -> return
+    url, doc_id -> res: bool, path: str, e: exception
     '''
     def __init__(self):
         self._browser = None

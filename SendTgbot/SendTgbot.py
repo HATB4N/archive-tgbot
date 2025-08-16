@@ -1,5 +1,4 @@
 import asyncio
-import mysql.connector
 from telegram import Bot
 from telegram.ext import ApplicationBuilder
 
@@ -25,6 +24,7 @@ class Tgbot:
     async def _queue_worker(self):
         try:
             while True:
+                print('sbot: start loop')
                 _doc_id, _path, _caption = await self._q.get()
                 self.len_q = self._q.qsize()
                 try:
@@ -39,6 +39,7 @@ class Tgbot:
             pass
 
     def add_file(self, path: str, id: int, caption: str = ""): # add file & alert to queue
+        print('sbot: file added')
         try:
             self._q.put_nowait((id, path, caption))
             self.len_q = self._q.qsize()
@@ -47,11 +48,11 @@ class Tgbot:
             raise
 
     async def _send_file(self, path: str, caption: str):
-        print('send_file')
+        print('sbot: send file')
         bot = self._app.bot
         with open(path, "rb") as f:
             msg = await bot.send_document(chat_id=self._chat_id, document=f, caption=caption)
-        print('done')
+        print('sbot: send file done')
         return msg.message_id
 
     async def _write_index(self, doc_id: int, msg_id: int):

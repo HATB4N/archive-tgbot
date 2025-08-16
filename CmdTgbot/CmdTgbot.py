@@ -25,21 +25,23 @@ class State(Enum):
     UPLOADING = auto()
     UPLOADED = auto()
     FAILED = auto()
-
+    
 TERMINALS = {State.UPLOADED, State.FAILED}
 
 @dataclass 
 class file_t:
-    msg_id: int = None 
+    msg_id: int = None
     state: State = State.QUEUED
     scheme: str = None
 
 class Tgbot:
     _token: str
     _chat_id: str
-    _flags = [] # wip
     _worker_task: asyncio.Task | None
     _own_files: dict[int, file_t]
+    _flags_match = {
+        "Default": 0
+    }
 
     def __init__(self, token, chat_id):
         '''
@@ -51,7 +53,7 @@ class Tgbot:
         self._app = None
         self._bot = None
         self._worker_task = None
-        self._own_file = dict[int, file_t]
+        self._own_files = dict[int, file_t] # trace file's life cycle
 
     async def _db_worker(self):
         try:
@@ -64,12 +66,12 @@ class Tgbot:
             # TODO
             pass
 
-    async def alert_result(self, res: str, bot=None):
+    async def _alert_result(self, res: str, bot=None):
+        # call by _db_worker[uploaded or failed]
         pass
 
-    async def _write(self, url: str, flag: str):
+    async def _write(self, scheme: str, flag: int):
         # TODO write to db
-        # Default: int(0)
         pass
 
     async def _on_text(self, u: Update, c: ContextTypes.DEFAULT_TYPE):
@@ -80,18 +82,11 @@ class Tgbot:
         if m:
             url = m.group(1)
             flag = m.group(2).lower()
-            if flag not in self._flags:
+            if flag not in list(self._flags_match.keys()): # maybe there are another good way
                 flag = 'Default'
-            await self._write(url = url, flag = flag)
-            await c.bot.send_message(chat_id = self._chat_id, text=f'url: {url}\nflag: {flag}\nhas uploaded to queue')
-        
-    async def _cmd_rm(self, u: Update, c: ContextTypes.DEFAULT_TYPE):
-        if not c.args:
-            await c.bot.send_message(chat_id = self._chat_id, text='format: /rm <target_id>')
-            return
-        if c.args[0]:
-            # TODO: validate target_id & search & rm it
-            await c.bot.send_message(chat_id = self._chat_id, text='WIP')
+            flag_num = self._flags_match[flag]
+            await self._write(scheme = url, flag = flag_num)
+            await c.bot.send_message(chat_id = self._chat_id, text=f'url: {url}\nflag: {flag}[{flag_num}]\nhas uploaded to queue')
 
     async def _cmd_help(self, u: Update, c: ContextTypes.DEFAULT_TYPE):
         print('send help')
@@ -105,12 +100,10 @@ class Tgbot:
     def build(self):
         app = ApplicationBuilder().token(self._token).build()
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._on_text))
-        app.add_handler(CommandHandler("rm", self._cmd_rm))
         app.add_handler(CommandHandler("help", self._cmd_help))
         self._app = app
         self._bot = app.bot
         return app
-    
 
     async def start_background(self):
         if not self._worker_task:

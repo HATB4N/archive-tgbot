@@ -1,18 +1,11 @@
 import os
 import signal
 import asyncio
-import subprocess # wtf
 import contextlib
 import mysql.connector
 
 import Controller
 import SendTgbot
-
-def wtf():
-    img = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), '../etc/img.png')
-    )
-    subprocess.run(["chafa", '--size=40', img])
 
 async def main():
     env = os.path.abspath(
@@ -63,5 +56,4 @@ async def main():
             await controller_task
 
 if __name__ == "__main__":
-    wtf()
     asyncio.run(main())

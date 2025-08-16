@@ -5,3 +5,4 @@
 /etc
 __pycache__
 Dockerfile
+dl_todo.txt
