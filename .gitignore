@@ -3,7 +3,6 @@
 /proxy
 /etc
 __pycache__
-Dockerfile
 dl_todo.txt
 
 cbotenv.txt

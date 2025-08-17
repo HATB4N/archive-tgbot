@@ -21,18 +21,11 @@ class Dl:
         return self
     
     async def to_pdf(self, url, doc_id) -> Tuple[bool, Optional[str], Optional[str], Optional[Exception]]:
-        # match msg_id & doc_id
-        # not yet
-        # I will refer to the archive box code later
         path = os.path.join(self._output_path, str(doc_id) + '.pdf')
         try:
             page = await self._browser.new_page()
-            await page.goto(url, wait_until="networkidle") # fix after
+            await page.goto(url, wait_until="networkidle", timeout=300000) # fix after
             title = await page.title()
-            # the long journey of title
-            # page2pdf/to_pdf ->download/result_queue -> 
-            # controller/consume_loop -> sendtgbot/add_file -> 
-            # queue_worker -> send_file -> write_index
             await page.pdf(path=path, format="A4") # also fix after
             await page.close()
             return True, path, title, None # ok, path, title, err

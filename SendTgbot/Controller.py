@@ -25,7 +25,7 @@ class Con:
         while True:
             _doc_id, _path, _title = await self._dl.get_result()  # 결과가 올 때만 대기
             # download completed files
-            self.update_state(doc_id = _doc_id, state = 10, exp_state=[5])
+            await self.update_state(doc_id = _doc_id, state = 10, exp_state=[5])
             try:
                 async with self._assign_lock:
                     target_sbot = min(self._sbots, key=lambda b: (b._q.qsize() + b.busy, id(b)))
