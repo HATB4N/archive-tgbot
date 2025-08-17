@@ -1,0 +1,51 @@
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_DATABASE}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Seoul
+    command: [
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci",
+      "--default-time-zone=+09:00",
+      "--innodb_flush_log_at_trx_commit=1",
+      "--binlog_format=ROW"
+    ]
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    restart: unless-stopped
+
+  sendtgbot:
+    build: .
+    env_file:
+      - .env
+    shm_size: 2g
+    depends_on: [db]
+    working_dir: /app
+    volumes:
+      - .:/app
+      - ./env:/app/env
+    command: ["python", "-u", "SendTgbot/main.py"]
+    environment:
+      PYTHONUNBUFFERED: "1"
+
+  cmdbot:
+    build: .
+    env_file:
+      - .env
+    depends_on: [db]
+    working_dir: /app
+    volumes:
+      - .:/app
+      - ./env:/app/env
+    command: ["python", "-u", "CmdTgbot/main.py"]
+    environment:
+      PYTHONUNBUFFERED: "1"
+
+volumes:
+  dbdata:

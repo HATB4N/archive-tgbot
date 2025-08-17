@@ -5,7 +5,9 @@ from downloader import Page2Pdf # not a p2p
 class Interface:
     _pdf_maker: Page2Pdf.Dl
     _tasks_q: asyncio.Queue[tuple[str, int, int]]
-    _results_q: asyncio.Queue[tuple[int,str]]
+    # target, flag, doc_id
+    _results_q: asyncio.Queue[tuple[int, str, str]]
+    # doc_id, path, title
     _workers: list[asyncio.Task]
     _started: bool
     _num_worker: int
@@ -22,8 +24,9 @@ class Interface:
         if self._started:
             return
         self._started = True
-
+        print('downloader: start called')
         await self._pdf_maker.init()
+        print('self.pdfmaker init done')
 
         for _ in range(self._num_worker):
             self._workers.append(asyncio.create_task(self._dl_worker()))
@@ -37,26 +40,26 @@ class Interface:
         self._workers.clear()
         self._started = False
 
-    async def add_task(self, uri: str, flag: int, doc_id: int):
-         await self._tasks_q.put((uri, flag, doc_id))
+    async def add_task(self, target: str, flag: int, doc_id: int):
+         await self._tasks_q.put((target, flag, doc_id))
 
     async def _dl_worker(self): # what a dirty block...
         try:
             while(True):
                 try:
-                    uri, flag, doc_id = await self._tasks_q.get()
+                    target, flag, doc_id = await self._tasks_q.get()
                     match flag:
                         case 0: #flag = Default
-                            print('dl start')
-                            r, p, e = await self._pdf_maker.to_pdf(uri, doc_id)
-                            if r:
+                            print(f'dl start: {target}, {doc_id}')
+                            ok, path, title, err = await self._pdf_maker.to_pdf(target, doc_id)
+                            if ok:
                                 # db state change to UPLOADING
                                 # return to controller or alert to controller
-                                await self._results_q.put((doc_id, p))
-                                print('dl done')
+                                await self._results_q.put((doc_id, path, title))
+                                print(f'dl done: {target}, {doc_id}')
                             else:
                                 # db state change to ERROR
-                                print(f'download fail: {e}')
+                                print(f'dl fail: {err}')
                         case 1:
                             # idk
                             pass

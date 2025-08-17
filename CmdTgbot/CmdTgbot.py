@@ -1,6 +1,5 @@
 import re
 import asyncio
-import mysql.connector
 from enum import Enum, auto
 from dataclasses import dataclass 
 from telegram import Update
@@ -12,27 +11,33 @@ from telegram.ext import (
     filters
 )
 
+from common.db import Session, Doc
+
 # cmdbot은 dict[doc_id: file_t]을 통해 FSM에 기반하여 각 파일의 수명을 관리한다.
 # 종료 state에(TERMINALS) 도달한 file_t은 dict에서 제거하는 방식으로 메모리를 관리한다. 
 # 주기적으로 db에서 flag를 읽어와 file_t의 state를 관리한다.
 # msg_id는 전송 이후 알 수 있으므로, doc_id에 매칭되는 dict로 구성한다. 
 # doc_id는 cmdbot에서 업로드 요청을 db에 레코드 할 때 unique하게 발급받는다.
+# WIP
 
 class State(Enum):
-    QUEUED = auto()
-    DOWNLOADING = auto()
-    DOWNLOADED = auto()
-    UPLOADING = auto()
-    UPLOADED = auto()
-    FAILED = auto()
+    QUEUED = 0
+    ENQUEUED = 5
+    DOWNLOADING = 10
+    DOWNLOADED = 20
+    UPLOADING = 30
+    UPLOADED = 40
+    FAILED = 100
     
 TERMINALS = {State.UPLOADED, State.FAILED}
 
 @dataclass 
 class file_t:
     msg_id: int = None
+    target: str = None
     state: State = State.QUEUED
-    scheme: str = None
+    flag: int = None
+    
 
 class Tgbot:
     _token: str
@@ -70,23 +75,30 @@ class Tgbot:
         # call by _db_worker[uploaded or failed]
         pass
 
-    async def _write(self, scheme: str, flag: int):
-        # TODO write to db
-        pass
-
+    async def _write(self, target: str, flag: int) -> int:
+        async with Session() as s:
+            async with s.begin():
+                doc = Doc(target=target, flag=flag)
+                s.add(doc)
+                await s.flush()
+                print(f'write new:\n  doc_id: {doc.doc_id}\n  state: {doc.state}')
+            return doc.doc_id
+        
     async def _on_text(self, u: Update, c: ContextTypes.DEFAULT_TYPE):
-        print('etc help')
+        print('etc get')
         text = (u.effective_message.text or "").strip()
         # url + flag (ex: https://google.com --flag or http://naver.com --flag)
-        m = re.match(r"^(https?://\S+)\s+--(\S+)$", text)
+        m = re.match(r"^(https?://\S+)(?:\s+--(\S+))?$", text)
         if m:
-            url = m.group(1)
-            flag = m.group(2).lower()
-            if flag not in list(self._flags_match.keys()): # maybe there are another good way
+            target = m.group(1)
+            flag = m.group(2)
+            if flag not in list(self._flags_match.keys()):
                 flag = 'Default'
             flag_num = self._flags_match[flag]
-            await self._write(scheme = url, flag = flag_num)
-            await c.bot.send_message(chat_id = self._chat_id, text=f'url: {url}\nflag: {flag}[{flag_num}]\nhas uploaded to queue')
+            print('etc start write')
+            await self._write(target = target, flag = flag_num)
+            print('etc write done')
+            await c.bot.send_message(chat_id = self._chat_id, text=f'url: {target}\nflag: {flag}[{flag_num}]\nhas uploaded to queue')
 
     async def _cmd_help(self, u: Update, c: ContextTypes.DEFAULT_TYPE):
         print('send help')

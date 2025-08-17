@@ -2,10 +2,9 @@ import os
 import signal
 import asyncio
 import contextlib
-import mysql.connector
-
 import Controller
 import SendTgbot
+from common.db import init_models
 
 async def main():
     env = os.path.abspath(
@@ -23,6 +22,19 @@ async def main():
 
     sbots = [SendTgbot.Tgbot(token=str(t), chat_id=int(sbot_chat_id)) for t in envs]
     apps = [b.build() for b in sbots]
+
+    async def bootstrap_db(max_try=20, delay=1.5):
+        for i in range(max_try):
+            try:
+                await init_models()
+                print("[db] models ready")
+                return
+            except Exception as e:
+                print(f"[db] not ready ({i+1}/{max_try}): {e}")
+                await asyncio.sleep(delay)
+        raise RuntimeError("DB init failed")
+    
+    await bootstrap_db()
 
     stop_event = asyncio.Event()
     loop = asyncio.get_running_loop()
