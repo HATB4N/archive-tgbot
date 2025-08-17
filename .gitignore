@@ -4,6 +4,7 @@
 /etc
 __pycache__
 dl_todo.txt
+memo.txt
 
 cbotenv.txt
 sbotenv.txt

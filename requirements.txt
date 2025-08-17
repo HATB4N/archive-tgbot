@@ -1,4 +1,5 @@
 playwright==1.54
+playwright-stealth
 python-telegram-bot>=21.0
 SQLAlchemy>=2.0
 aiomysql

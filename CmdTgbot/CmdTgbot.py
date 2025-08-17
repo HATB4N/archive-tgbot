@@ -98,7 +98,7 @@ class Tgbot:
             print('etc start write')
             await self._write(target = target, flag = flag_num)
             print('etc write done')
-            await c.bot.send_message(chat_id = self._chat_id, text=f'url: {target}\nflag: {flag}[{flag_num}]\nhas uploaded to queue')
+            await c.bot.send_message(chat_id = self._chat_id, text=f'url: {target}\nflag: {flag}[{flag_num}]\nuploaded to queue')
 
     async def _cmd_help(self, u: Update, c: ContextTypes.DEFAULT_TYPE):
         print('send help')
